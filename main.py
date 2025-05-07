@@ -1,33 +1,22 @@
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi import Request
+import yt_dlp
+import os
+
+app = FastAPI()
 
 app.mount("/indirilenler", StaticFiles(directory="indirilenler"), name="indirilenler")
 templates = Jinja2Templates(directory=".")
 
 @app.get("/", response_class=HTMLResponse)
-def serve_index(request: Request):
+def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-
-
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/")
-def read_root():
-    return {"message": "Video indirici sitesi çalışıyor!"}
-
-from fastapi import Form
-from fastapi.responses import FileResponse
-import yt_dlp
-
 @app.post("/indir")
-def indir(url: str = Form(...), format: str = Form(...)):
+def indir(request: Request, video_url: str = Form(...), format: str = Form(...)):
     ydl_opts = {}
-
     if format == "mp3":
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -38,20 +27,18 @@ def indir(url: str = Form(...), format: str = Form(...)):
                 'preferredquality': '192',
             }],
         }
-    elif format == "video":
+    elif format == "mp4":
         ydl_opts = {
             'format': 'best',
             'outtmpl': 'indirilenler/%(title)s.%(ext)s',
         }
-    else:
-        return {"error": "Geçersiz format seçildi."}
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-
-        # mp3 formatı için uzantıyı düzeltelim
+        info_dict = ydl.extract_info(video_url, download=True)
         if format == "mp3":
-            filename = filename.rsplit('.', 1)[0] + '.mp3'
+            filename = ydl.prepare_filename(info_dict)
+            filename = os.path.splitext(filename)[0] + ".mp3"
+        else:
+            filename = ydl.prepare_filename(info_dict)
 
-    return FileResponse(path=filename, filename=filename.split('/')[-1], media_type='application/octet-stream')
+    return FileResponse(path=filename, filename=os.path.basename(filename), media_type='application/octet-stream')
