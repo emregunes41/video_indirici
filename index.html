@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video İndirici</title>
+</head>
+<body>
+    <h1>Video İndirici</h1>
+    <form action="/indir" method="post">
+        <input type="text" name="url" placeholder="Video linkini yapıştırın" required><br><br>
+        <select name="format">
+            <option value="video">Video indir (mp4)</option>
+            <option value="mp3">Sadece ses indir (mp3)</option>
+        </select><br><br>
+        <button type="submit">İndir</button>
+    </form>
+</body>
+</html>
